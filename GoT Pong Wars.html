@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pong Wars: Fire vs Ice</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('fire_vs_ice.png') center center / cover no-repeat fixed;
+      font-family: monospace;
+    }
+
+    #container {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(70vh, 80%);
+      max-width: 600px;
+      height: 90%;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+    }
+
+    #score {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #ffffff;
+    }
+
+    #made {
+      text-align: center;
+      margin-top: auto;
+      margin-bottom: 15px;
+      font-size: 10px;
+      color: #cccccc;
+    }
+
+    #made a {
+      color: #cccccc;
+      text-decoration: none;
+    }
+
+    #play-button {
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <canvas id="pongCanvas" width="600" height="600"></canvas>
+    <div id="score"></div>
+    <button id="play-button">▶ Hear battle cries</button>
+    <p id="made">d
+      adapted by <a href="https://github.com/rahulvenugopal">Rahul Venugopal</a> |
+      Fire & Ice theme | based on <a href="https://github.com/vnglst/pong-wars">Pong Wars
+    </p>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bg-music" src="got_theme.mp3" loop></audio>
+
+  <script>
+    const FIRE_COLOR = "#ff8800";      // Fiery orange-red
+    const FIRE_BALL_COLOR = "#ff4000"; // Bright orange flame
+    const ICE_COLOR = "#d0f4f7";       // Deep icy blue
+    const ICE_BALL_COLOR = "#5bc0eb";  // Light icy blue
+
+    const canvas = document.getElementById("pongCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+
+    const SQUARE_SIZE = 25;
+    const MIN_SPEED = 5;
+    const MAX_SPEED = 10;
+
+    const numSquaresX = canvas.width / SQUARE_SIZE;
+    const numSquaresY = canvas.height / SQUARE_SIZE;
+
+    let fireScore = 0;
+    let iceScore = 0;
+
+    const squares = [];
+
+    for (let i = 0; i < numSquaresX; i++) {
+      squares[i] = [];
+      for (let j = 0; j < numSquaresY; j++) {
+        squares[i][j] = i < numSquaresX / 2 ? FIRE_COLOR : ICE_COLOR;
+      }
+    }
+
+    const balls = [
+      {
+        x: canvas.width / 4,
+        y: canvas.height / 2,
+        dx: 8,
+        dy: -8,
+        reverseColor: FIRE_COLOR,
+        ballColor: FIRE_BALL_COLOR,
+      },
+      {
+        x: (canvas.width / 4) * 3,
+        y: canvas.height / 2,
+        dx: -8,
+        dy: 8,
+        reverseColor: ICE_COLOR,
+        ballColor: ICE_BALL_COLOR,
+      },
+    ];
+
+    function drawBall(ball) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, SQUARE_SIZE / 2, 0, Math.PI * 2, false);
+      ctx.fillStyle = ball.ballColor;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawSquares() {
+      fireScore = 0;
+      iceScore = 0;
+
+      for (let i = 0; i < numSquaresX; i++) {
+        for (let j = 0; j < numSquaresY; j++) {
+          ctx.fillStyle = squares[i][j];
+          ctx.fillRect(i * SQUARE_SIZE, j * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+
+          if (squares[i][j] === FIRE_COLOR) fireScore++;
+          if (squares[i][j] === ICE_COLOR) iceScore++;
+        }
+      }
+    }
+
+    function checkSquareCollision(ball) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+        const checkX = ball.x + Math.cos(angle) * (SQUARE_SIZE / 2);
+        const checkY = ball.y + Math.sin(angle) * (SQUARE_SIZE / 2);
+
+        const i = Math.floor(checkX / SQUARE_SIZE);
+        const j = Math.floor(checkY / SQUARE_SIZE);
+
+        if (i >= 0 && i < numSquaresX && j >= 0 && j < numSquaresY) {
+          if (squares[i][j] !== ball.reverseColor) {
+            squares[i][j] = ball.reverseColor;
+
+            if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+              ball.dx = -ball.dx;
+            } else {
+              ball.dy = -ball.dy;
+            }
+          }
+        }
+      }
+    }
+
+    function checkBoundaryCollision(ball) {
+      if (ball.x + ball.dx > canvas.width - SQUARE_SIZE / 2 || ball.x + ball.dx < SQUARE_SIZE / 2) {
+        ball.dx = -ball.dx;
+      }
+      if (ball.y + ball.dy > canvas.height - SQUARE_SIZE / 2 || ball.y + ball.dy < SQUARE_SIZE / 2) {
+        ball.dy = -ball.dy;
+      }
+    }
+
+    function addRandomness(ball) {
+      ball.dx += Math.random() * 0.02 - 0.01;
+      ball.dy += Math.random() * 0.02 - 0.01;
+      ball.dx = Math.min(Math.max(ball.dx, -MAX_SPEED), MAX_SPEED);
+      ball.dy = Math.min(Math.max(ball.dy, -MAX_SPEED), MAX_SPEED);
+
+      if (Math.abs(ball.dx) < MIN_SPEED) ball.dx = ball.dx > 0 ? MIN_SPEED : -MIN_SPEED;
+      if (Math.abs(ball.dy) < MIN_SPEED) ball.dy = ball.dy > 0 ? MIN_SPEED : -MIN_SPEED;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawSquares();
+
+      scoreElement.textContent = `🔥 Fire ${fireScore} | ❄ Ice ${iceScore}`;
+
+      balls.forEach((ball) => {
+        drawBall(ball);
+        checkSquareCollision(ball);
+        checkBoundaryCollision(ball);
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+        addRandomness(ball);
+      });
+    }
+
+    setInterval(draw, 1000 / 100);
+
+    // Handle music play on user click
+    const bgMusic = document.getElementById('bg-music');
+    const playButton = document.getElementById('play-button');
+
+    playButton.addEventListener('click', () => {
+      bgMusic.play().then(() => {
+        playButton.style.display = 'none'; // hide button after playing
+      }).catch(err => {
+        console.log('Playback error:', err);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -3,3 +3,5 @@
 This is a modification of the source code from Koen in the theme of `Fire and Ice` with battle sounds!
 
 I would love to expland this game to push my imaginations and creativity
+
+Checkout the [game](https://rahulvenugopal.github.io/GoTPongWars/)
